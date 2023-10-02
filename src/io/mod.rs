@@ -6,6 +6,7 @@ use std::{
     ptr, slice,
     sync::Arc,
 };
+use std::os::fd::AsRawFd;
 
 use crate::{
     buffer::{Metadata, Type},
@@ -65,7 +66,7 @@ impl<B, S> Queue<B, S> {
 
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_REQBUFS,
                 &mut v4l2_reqbufs as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -88,7 +89,7 @@ impl<B, S> Queue<B, S> {
 
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QUERYBUF,
                 &mut buf as *mut _ as *mut std::os::raw::c_void,
             )?;
@@ -101,7 +102,7 @@ impl<B, S> Queue<B, S> {
     fn streamon(&mut self) -> io::Result<()> {
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_STREAMON,
                 &mut self.buf_type as *mut _ as *mut std::os::raw::c_void,
             )
@@ -112,7 +113,7 @@ impl<B, S> Queue<B, S> {
     fn streamoff(&mut self) -> io::Result<()> {
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_STREAMOFF,
                 &mut self.buf_type as *mut _ as *mut std::os::raw::c_void,
             )
@@ -125,7 +126,7 @@ impl<B, S> Queue<B, S> {
 
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_QBUF,
                 buf as *mut _ as *mut std::os::raw::c_void,
             )
@@ -138,7 +139,7 @@ impl<B, S> Queue<B, S> {
 
         unsafe {
             v4l2::ioctl(
-                self.handle.fd(),
+                self.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_DQBUF,
                 buf as *mut _ as *mut std::os::raw::c_void,
             )
@@ -244,7 +245,7 @@ impl Queue<Mmap<'_>, queue::Idle> {
 
             let mapping = unsafe {
                 v4l2::ioctl(
-                    queue.handle.fd(),
+                    queue.handle.as_raw_fd(),
                     v4l2::vidioc::VIDIOC_QUERYBUF,
                     &mut v4l2_buf as *mut _ as *mut std::os::raw::c_void,
                 )?;
@@ -254,7 +255,7 @@ impl Queue<Mmap<'_>, queue::Idle> {
                     v4l2_buf.length as usize,
                     libc::PROT_READ | libc::PROT_WRITE,
                     libc::MAP_SHARED,
-                    queue.handle.fd(),
+                    queue.handle.as_raw_fd(),
                     v4l2_buf.m.offset as libc::off_t,
                 )?;
 
@@ -322,7 +323,7 @@ impl Queue<UserPtr, queue::Idle> {
         };
         unsafe {
             v4l2::ioctl(
-                queue.handle.fd(),
+                queue.handle.as_raw_fd(),
                 v4l2::vidioc::VIDIOC_G_FMT,
                 &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
             )?;
