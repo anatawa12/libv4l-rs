@@ -36,7 +36,7 @@ pub struct Queue<B, S> {
     _marker: PhantomData<S>,
 }
 
-mod queue {
+pub mod queue {
     pub struct Idle {}
 
     pub struct Streaming {}
