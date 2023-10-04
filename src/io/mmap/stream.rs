@@ -259,6 +259,10 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
         Ok(self.arena_index)
     }
 
+    fn get(&mut self, index: usize) -> io::Result<(&mut Self::Item, &mut Metadata)> {
+        Ok((&mut self.arena.bufs[index], &mut self.buf_meta[index]))
+    }
+
     fn next(&'b mut self) -> io::Result<(&mut Self::Item, &mut Metadata)> {
         let init = !self.active;
         if !self.active {

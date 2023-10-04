@@ -35,6 +35,9 @@ pub trait OutputStream<'a>: Stream {
     /// Remove a buffer from the drivers' outgoing queue
     fn dequeue(&mut self) -> io::Result<usize>;
 
+    /// Access the buffer at the specified index.
+    fn get(&mut self, index: usize) -> io::Result<(&mut Self::Item, &mut Metadata)>;
+
     /// Dump a new frame by first queueing and then dequeueing.
     /// First time initialization is performed if necessary.
     fn next(&'a mut self) -> io::Result<(&mut Self::Item, &mut Metadata)>;
