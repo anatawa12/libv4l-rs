@@ -1,6 +1,7 @@
 use std::io;
 
 use crate::buffer::Metadata;
+use crate::v4l_sys::*;
 
 /// Streaming I/O
 pub trait Stream {
@@ -21,11 +22,11 @@ pub trait CaptureStream<'a>: Stream {
     fn dequeue(&mut self) -> io::Result<usize>;
 
     /// Access the buffer at the specified index.
-    fn get(&self, index: usize) -> io::Result<(&Self::Item, &Metadata)>;
+    fn get(&self, index: usize) -> io::Result<(&Self::Item, &Metadata, &[v4l2_plane])>;
 
     /// Fetch a new frame by first queueing and then dequeueing.
     /// First time initialization is performed if necessary.
-    fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata)>;
+    fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata, &[v4l2_plane])>;
 }
 
 pub trait OutputStream<'a>: Stream {
@@ -36,7 +37,7 @@ pub trait OutputStream<'a>: Stream {
     fn dequeue(&mut self) -> io::Result<usize>;
 
     /// Access the buffer at the specified index.
-    fn get(&mut self, index: usize) -> io::Result<(&mut Self::Item, &mut Metadata)>;
+    fn get(&mut self, index: usize) -> io::Result<(&mut Self::Item, &mut Metadata, &mut [v4l2_plane])>;
 
     /// Dump a new frame by first queueing and then dequeueing.
     /// First time initialization is performed if necessary.

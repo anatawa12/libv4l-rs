@@ -133,6 +133,23 @@ pub struct Metadata {
     pub length: u32,
 }
 
+impl Metadata {
+    pub fn with_memory(memory: Memory) -> Self {
+        Self {
+            memory,
+
+            index: Default::default(),
+            type_: Default::default(),
+            bytesused: Default::default(),
+            flags: Default::default(),
+            field: Default::default(),
+            timestamp: Default::default(),
+            sequence: Default::default(),
+            length: Default::default(),
+        }
+    }
+}
+
 impl From<v4l2_buffer> for Metadata {
     fn from(buf: v4l2_buffer) -> Self {
         Self {

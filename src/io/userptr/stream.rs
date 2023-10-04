@@ -52,7 +52,7 @@ impl Stream {
         let mut arena = Arena::new(dev.handle(), buf_type);
         let count = arena.allocate(buf_count)?;
         let mut buf_meta = Vec::new();
-        buf_meta.resize(count as usize, unsafe { Metadata { ..mem::zeroed() } });
+        buf_meta.resize(count as usize, Metadata::with_memory(Memory::UserPtr));
 
         Ok(Stream {
             handle: dev.handle(),
@@ -184,11 +184,11 @@ impl<'a> CaptureStream<'a> for Stream {
         Ok(self.arena_index)
     }
 
-    fn get(&self, index: usize) -> io::Result<(&Self::Item, &Metadata)> {
-        Ok((&self.arena.bufs[index], &self.buf_meta[index]))
+    fn get(&self, index: usize) -> io::Result<(&Self::Item, &Metadata, &[v4l2_plane])> {
+        Ok((&self.arena.bufs[index], &self.buf_meta[index], &[]))
     }
 
-    fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata)> {
+    fn next(&'a mut self) -> io::Result<(&Self::Item, &Metadata, &[v4l2_plane])> {
         if !self.active {
             // Enqueue all buffers once on stream start
             for index in 0..self.arena.bufs.len() {
