@@ -388,7 +388,7 @@ impl Handle {
     ///
     /// * `path` - Path (e.g. "/dev/video0")
     pub fn open<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        let fd = v4l2::open(&path, libc::O_RDWR | libc::O_NONBLOCK)?;
+        let fd = v4l2::open(&path, libc::O_RDWR)?;
         if fd == -1 {
             return Err(io::Error::last_os_error());
         }
