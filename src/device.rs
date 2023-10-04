@@ -72,9 +72,7 @@ impl<const M: bool> PlanarDevice<M> {
     pub fn handle(&self) -> Arc<Handle> {
         self.handle.clone()
     }
-}
 
-impl Device {
     /// Returns video4linux framework defined information such as card, driver, etc.
     pub fn query_caps(&self) -> io::Result<Capabilities> {
         unsafe {
@@ -88,7 +86,9 @@ impl Device {
             Ok(Capabilities::from(v4l2_caps))
         }
     }
+}
 
+impl Device {
     /// Returns the supported controls for a device such as gain, focus, white balance, etc.
     pub fn query_controls(&self) -> io::Result<Vec<control::Description>> {
         let mut controls = Vec::new();
