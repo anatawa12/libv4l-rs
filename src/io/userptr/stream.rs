@@ -140,6 +140,16 @@ impl StreamTrait for Stream {
 }
 
 impl<'a> CaptureStream<'a> for Stream {
+    fn poll(&self) -> io::Result<bool> {
+        if self.handle.poll(libc::POLLIN, self.timeout.unwrap_or(-1))? == 0 {
+            // This condition can only happen if there was a timeout.
+            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
+            // propagate it to the caller.
+            return Ok(false);
+        }
+        Ok(true)
+    }
+
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let buf = &mut self.arena.bufs[index];
         let mut v4l2_buf = v4l2_buffer {
@@ -163,13 +173,6 @@ impl<'a> CaptureStream<'a> for Stream {
 
     fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf = self.buffer_desc();
-
-        if self.handle.poll(libc::POLLIN, self.timeout.unwrap_or(-1))? == 0 {
-            // This condition can only happen if there was a timeout.
-            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
-            // propagate it to the caller.
-            return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_DQBUF"));
-        }
 
         unsafe {
             v4l2::ioctl(
@@ -198,6 +201,10 @@ impl<'a> CaptureStream<'a> for Stream {
             self.start()?;
         } else {
             self.queue(self.arena_index)?;
+        }
+
+        if !self.poll()? {
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_DQBUF"));
         }
 
         let index = self.dequeue()?;

@@ -150,6 +150,16 @@ impl<'a> StreamTrait for Stream<'a> {
 }
 
 impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
+    fn poll(&self) -> io::Result<bool> {
+        if self.handle.poll(libc::POLLIN, self.timeout.unwrap_or(-1))? == 0 {
+            // This condition can only happen if there was a timeout.
+            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
+            // propagate it to the caller.
+            return Ok(false);
+        }
+        Ok(true)
+    }
+
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf = v4l2_buffer {
             ..self.buffer_desc(index)
@@ -168,13 +178,6 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
 
     fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf = self.buffer_desc(0);
-
-        if self.handle.poll(libc::POLLIN, self.timeout.unwrap_or(-1))? == 0 {
-            // This condition can only happen if there was a timeout.
-            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
-            // propagate it to the caller.
-            return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_DQBUF"));
-        }
 
         unsafe {
             v4l2::ioctl(
@@ -205,12 +208,30 @@ impl<'a, 'b> CaptureStream<'b> for Stream<'a> {
             CaptureStream::queue(self, self.arena_index)?;
         }
 
+        if !OutputStream::poll(self)? {
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_QBUF"));
+        }
+
         let index = CaptureStream::dequeue(self)?;
         CaptureStream::get(self, index)
     }
 }
 
 impl<'a, 'b> OutputStream<'b> for Stream<'a> {
+    fn poll(&self) -> io::Result<bool> {
+        if self
+            .handle
+            .poll(libc::POLLOUT, self.timeout.unwrap_or(-1))?
+            == 0
+        {
+            // This condition can only happen if there was a timeout.
+            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
+            // propagate it to the caller.
+            return Ok(false);
+        }
+        Ok(true)
+    }
+
     fn queue(&mut self, index: usize) -> io::Result<()> {
         let mut v4l2_buf = v4l2_buffer {
             ..self.buffer_desc(index)
@@ -234,17 +255,6 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
 
     fn dequeue(&mut self) -> io::Result<usize> {
         let mut v4l2_buf = self.buffer_desc(0);
-
-        if self
-            .handle
-            .poll(libc::POLLOUT, self.timeout.unwrap_or(-1))?
-            == 0
-        {
-            // This condition can only happen if there was a timeout.
-            // A timeout is only possible if the `timeout` value is non-zero, meaning we should
-            // propagate it to the caller.
-            return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_QBUF"));
-        }
 
         unsafe {
             v4l2::ioctl(
@@ -274,6 +284,9 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
         // allocated, meaning we need to return the empty buffer initially so it can be filled.
         if !init {
             OutputStream::queue(self, self.arena_index)?;
+            if !OutputStream::poll(self)? {
+                return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_QBUF"));
+            }
             self.arena_index = OutputStream::dequeue(self)?;
         }
 

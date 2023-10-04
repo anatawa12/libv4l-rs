@@ -15,6 +15,8 @@ pub trait Stream {
 }
 
 pub trait CaptureStream<'a>: Stream {
+    fn poll(&self) -> io::Result<bool>;
+
     /// Insert a buffer into the drivers' incoming queue
     fn queue(&mut self, index: usize) -> io::Result<()>;
 
@@ -30,6 +32,8 @@ pub trait CaptureStream<'a>: Stream {
 }
 
 pub trait OutputStream<'a>: Stream {
+    fn poll(&self) -> io::Result<bool>;
+
     /// Insert a buffer into the drivers' incoming queue
     fn queue(&mut self, index: usize) -> io::Result<()>;
 
