@@ -14,13 +14,19 @@ use crate::v4l2::videodev::v4l2_ext_controls;
 use crate::v4l_sys::*;
 use crate::{capability::Capabilities, control::Control};
 
+pub const PLANES_ONE: bool = false;
+pub const PLANES_MANY: bool = true;
+
+pub type Device = PlanarDevice<PLANES_ONE>;
+pub type MultiPlaneDevice = PlanarDevice<PLANES_MANY>;
+
 /// Linux capture device abstraction
-pub struct Device {
+pub struct PlanarDevice<const M: bool> {
     /// Raw handle
     handle: Arc<Handle>,
 }
 
-impl Device {
+impl<const M: bool> PlanarDevice<M> {
     /// Returns a capture device by index
     ///
     /// Devices are usually enumerated by the system.
@@ -37,7 +43,7 @@ impl Device {
     /// let dev = Device::new(0);
     /// ```
     pub fn new(index: usize) -> io::Result<Self> {
-        Ok(Device {
+        Ok(Self {
             handle: Arc::new(Handle::open(format!("{}{}", "/dev/video", index))?),
         })
     }
@@ -57,7 +63,7 @@ impl Device {
     /// let dev = Device::with_path("/dev/video0");
     /// ```
     pub fn with_path<P: AsRef<Path>>(path: P) -> io::Result<Self> {
-        Ok(Device {
+        Ok(Self {
             handle: Arc::new(Handle::open(path)?),
         })
     }
@@ -66,7 +72,9 @@ impl Device {
     pub fn handle(&self) -> Arc<Handle> {
         self.handle.clone()
     }
+}
 
+impl Device {
     /// Returns video4linux framework defined information such as card, driver, etc.
     pub fn query_caps(&self) -> io::Result<Capabilities> {
         unsafe {

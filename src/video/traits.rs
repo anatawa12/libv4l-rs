@@ -3,12 +3,13 @@ use std::io;
 use crate::video::capture::Parameters as CaptureParameters;
 use crate::video::output::Parameters as OutputParameters;
 use crate::{
-    buffer, format::Description as FormatDescription, format::Format, format::FourCC,
+    buffer, format::Description as FormatDescription, format::FourCC,
     frameinterval::FrameInterval, framesize::FrameSize,
 };
 
 /// Capture device protocol
 pub trait Capture {
+    type Format;
     /// Returns a vector of all frame intervals that the device supports for the given pixel format
     /// and frame size
     fn enum_frameintervals(
@@ -28,7 +29,7 @@ pub trait Capture {
     fn enum_formats(&self) -> io::Result<Vec<FormatDescription>>;
 
     /// Returns the format currently in use
-    fn format(&self) -> io::Result<Format>;
+    fn format(&self) -> io::Result<Self::Format>;
 
     /// Modifies the capture format and returns the actual format
     ///
@@ -40,7 +41,7 @@ pub trait Capture {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, fmt: &Self::Format) -> io::Result<Self::Format>;
 
     /// Returns the parameters currently in use
     fn params(&self) -> io::Result<CaptureParameters>;
@@ -55,6 +56,7 @@ pub trait Capture {
 
 /// Output device protocol
 pub trait Output {
+    type Format;
     /// Returns a vector of all frame intervals that the device supports for the given pixel format
     /// and frame size
     fn enum_frameintervals(
@@ -74,7 +76,7 @@ pub trait Output {
     fn enum_formats(&self) -> io::Result<Vec<FormatDescription>>;
 
     /// Returns the format currently in use
-    fn format(&self) -> io::Result<Format>;
+    fn format(&self) -> io::Result<Self::Format>;
 
     /// Modifies the capture format and returns the actual format
     ///
@@ -86,7 +88,7 @@ pub trait Output {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&self, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, fmt: &Self::Format) -> io::Result<Self::Format>;
 
     /// Returns the parameters currently in use
     fn params(&self) -> io::Result<OutputParameters>;
@@ -108,7 +110,7 @@ pub trait Output {
 ///
 /// Hint: the value is known at compile time because we encode the information in the traits
 /// themselves, i.e. `Capture` implies buffer::Type::Capture, etc.
-pub(crate) trait Video {
+pub(crate) trait VideoBase {
     /// Returns a vector of all frame intervals that the device supports for the given pixel format
     /// and frame size
     fn enum_frameintervals(
@@ -126,9 +128,12 @@ pub(crate) trait Video {
     /// The "emulated" field describes formats filled in by libv4lconvert.
     /// There may be a conversion related performance penalty when using them.
     fn enum_formats(&self, typ: buffer::Type) -> io::Result<Vec<FormatDescription>>;
+}
 
+pub(crate) trait Video : VideoBase {
+    type Format;
     /// Returns the format currently in use
-    fn format(&self, typ: buffer::Type) -> io::Result<Format>;
+    fn format(&self, typ: buffer::Type) -> io::Result<Self::Format>;
 
     /// Modifies the capture format and returns the actual format
     ///
@@ -140,5 +145,5 @@ pub(crate) trait Video {
     /// # Arguments
     ///
     /// * `fmt` - Desired format
-    fn set_format(&self, typ: buffer::Type, fmt: &Format) -> io::Result<Format>;
+    fn set_format(&self, typ: buffer::Type, fmt: &Self::Format) -> io::Result<Self::Format>;
 }

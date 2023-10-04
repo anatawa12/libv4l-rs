@@ -12,8 +12,10 @@ pub mod capture;
 pub mod output;
 
 pub use traits::{Capture, Output};
+use crate::device::{MultiPlaneDevice, PlanarDevice};
+use crate::format::MultiPlaneFormat;
 
-impl traits::Video for Device {
+impl<const M: bool> traits::VideoBase for PlanarDevice<M> {
     fn enum_frameintervals(
         &self,
         fourcc: FourCC,
@@ -130,6 +132,10 @@ impl traits::Video for Device {
 
         Ok(formats)
     }
+}
+
+impl traits::Video for Device {
+    type Format = Format;
 
     fn format(&self, typ: buffer::Type) -> io::Result<Format> {
         unsafe {
@@ -152,6 +158,43 @@ impl traits::Video for Device {
             let mut v4l2_fmt = v4l2_format {
                 type_: typ as u32,
                 fmt: v4l2_format__bindgen_ty_1 { pix: (*fmt).into() },
+            };
+            v4l2::ioctl(
+                self.handle().as_raw_fd(),
+                v4l2::vidioc::VIDIOC_S_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+        }
+
+        <Self as traits::Video>::format(self, typ)
+    }
+}
+
+
+impl traits::Video for MultiPlaneDevice {
+    type Format = MultiPlaneFormat;
+
+    fn format(&self, typ: buffer::Type) -> io::Result<MultiPlaneFormat> {
+        unsafe {
+            let mut v4l2_fmt = v4l2_format {
+                type_: typ as u32,
+                ..mem::zeroed()
+            };
+            v4l2::ioctl(
+                self.handle().as_raw_fd(),
+                v4l2::vidioc::VIDIOC_G_FMT,
+                &mut v4l2_fmt as *mut _ as *mut std::os::raw::c_void,
+            )?;
+
+            Ok(MultiPlaneFormat::from(v4l2_fmt.fmt.pix_mp))
+        }
+    }
+
+    fn set_format(&self, typ: buffer::Type, fmt: &MultiPlaneFormat) -> io::Result<MultiPlaneFormat> {
+        unsafe {
+            let mut v4l2_fmt = v4l2_format {
+                type_: typ as u32,
+                fmt: v4l2_format__bindgen_ty_1 { pix_mp: fmt.clone().into() },
             };
             v4l2::ioctl(
                 self.handle().as_raw_fd(),

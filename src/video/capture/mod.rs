@@ -1,5 +1,6 @@
 pub mod parameters;
 pub use parameters::Parameters;
+pub mod mplane;
 
 use std::{io, mem, os::fd::AsRawFd};
 
@@ -10,7 +11,7 @@ use crate::frameinterval::FrameInterval;
 use crate::framesize::FrameSize;
 use crate::v4l2;
 use crate::v4l_sys::*;
-use crate::video::traits::{Capture, Video};
+use crate::video::traits::{Capture, Video, VideoBase};
 
 impl Capture for Device {
     fn enum_frameintervals(
@@ -19,15 +20,15 @@ impl Capture for Device {
         width: u32,
         height: u32,
     ) -> io::Result<Vec<FrameInterval>> {
-        <Self as Video>::enum_frameintervals(self, fourcc, width, height)
+        <Self as VideoBase>::enum_frameintervals(self, fourcc, width, height)
     }
 
     fn enum_framesizes(&self, fourcc: FourCC) -> io::Result<Vec<FrameSize>> {
-        <Self as Video>::enum_framesizes(self, fourcc)
+        <Self as VideoBase>::enum_framesizes(self, fourcc)
     }
 
     fn enum_formats(&self) -> io::Result<Vec<FormatDescription>> {
-        <Self as Video>::enum_formats(self, Type::VideoCapture)
+        <Self as VideoBase>::enum_formats(self, Type::VideoCapture)
     }
 
     fn format(&self) -> io::Result<Format> {
@@ -37,6 +38,8 @@ impl Capture for Device {
     fn set_format(&self, fmt: &Format) -> io::Result<Format> {
         <Self as Video>::set_format(self, Type::VideoCapture, fmt)
     }
+
+    type Format = Format;
 
     fn params(&self) -> io::Result<Parameters> {
         unsafe {
