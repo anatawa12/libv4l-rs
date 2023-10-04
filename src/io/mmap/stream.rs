@@ -224,16 +224,16 @@ impl<'a, 'b> OutputStream<'b> for Stream<'a> {
             v4l2_buf.bytesused = self.buf_meta[index].bytesused;
             v4l2_buf.field = self.buf_meta[index].field;
 
-            //if self
-            //    .handle
-            //    .poll(libc::POLLOUT, self.timeout.unwrap_or(-1))?
-            //    == 0
-            //{
-            //    // This condition can only happen if there was a timeout.
-            //    // A timeout is only possible if the `timeout` value is non-zero, meaning we should
-            //    // propagate it to the caller.
-            //    return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_QBUF"));
-            //}
+            if self
+                .handle
+                .poll(libc::POLLOUT, self.timeout.unwrap_or(-1))?
+                == 0
+            {
+                // This condition can only happen if there was a timeout.
+                // A timeout is only possible if the `timeout` value is non-zero, meaning we should
+                // propagate it to the caller.
+                return Err(io::Error::new(io::ErrorKind::TimedOut, "VIDIOC_QBUF"));
+            }
 
             v4l2::ioctl(
                 self.handle.as_raw_fd(),
